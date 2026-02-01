@@ -1,32 +1,644 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>好省 - 极简比价</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --sub-text: #64748b;
+            --border: #e2e8f0;
+            --placeholder: #cbd5e1; /* 1. 更浅的占位符颜色 */
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+            padding-bottom: 40px; 
+        }
+
+        /* 顶部导航 */
+        .header {
+            background: var(--card);
+            height: 50px;
+            padding: 0 15px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .header-btn {
+            font-size: 15px;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 5px 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .container {
+            padding: 10px 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 输入卡片 */
+        .input-card {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.03);
+            position: relative;
+        }
+        .remove-row {
+            position: absolute;
+            top: 8px; 
+            right: 8px;
+            color: #cbd5e1;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 5px;
+            z-index: 10;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-size: 11px; 
+            color: var(--sub-text);
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .required-star {
+            color: var(--danger);
+            margin-right: 2px;
+            font-weight: bold;
+        }
+        .label-note {
+            font-weight: normal;
+            color: #94a3b8;
+            margin-left: 2px;
+            font-size: 10px;
+        }
+        
+        /* 输入框基础样式 */
+        input {
+            width: 100%;
+            /* 2. 强制高度统一 */
+            height: 38px; 
+            padding: 0 10px; /* 只控制左右padding，上下由line-height居中 */
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            background: #fdfdfd;
+            font-weight: 500;
+        }
+        input:focus {
+            border-color: var(--primary);
+            background: #fff;
+        }
+        
+        /* 1. 占位符弱化优化 */
+        input::placeholder {
+            color: var(--placeholder);
+            font-weight: normal;
+            font-size: 13px; /* 稍微小一点 */
+            opacity: 1; /* Firefox需要 */
+        }
+
+        /* 商品名称字体变小，但高度已通过 input 统一 */
+        .input-name {
+            font-size: 14px; /* 小一号字体 */
+            color: #475569;
+        }
+
+        .input-wrapper { position: relative; }
+        .suffix {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 13px;
+            pointer-events: none;
+        }
+        input.has-suffix { padding-right: 30px; }
+
+        .calc-preview {
+            font-size: 11px;
+            color: var(--primary);
+            height: 14px;
+            margin-top: 1px;
+            text-align: right;
+        }
+
+        /* 按钮区 */
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin: 15px 0 20px 0;
+        }
+        .btn {
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            padding: 12px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-reset { background: #fee2e2; color: var(--danger); flex: 1; }
+        .btn-calc { background: var(--primary); color: white; flex: 2.5; box-shadow: 0 2px 5px rgba(37,99,235,0.2); }
+        .btn-add { background: #e2e8f0; color: var(--text); flex: 1; }
+
+        /* 结果区 */
+        #result-area {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #cbd5e1;
+        }
+        .result-title {
+            font-size: 13px;
+            color: var(--sub-text);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .result-item {
+            background: var(--card);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border-left: 3px solid transparent;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.03);
+        }
+        .result-item.best {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        
+        .res-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+        .res-name {
+            font-weight: 600;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 55%;
+        }
+        .unit-price {
+            font-size: 17px;
+            font-family: -apple-system, monospace;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .unit-price small {
+            font-size: 11px;
+            color: var(--sub-text);
+            font-weight: normal;
+        }
+        
+        .sub-info {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        /* 视觉条形图 */
+        .bar-container {
+            width: 100%;
+            height: 20px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .bar { height: 100%; }
+        .bar.green { background: var(--success); }
+        .bar.red { background: #fda4af; }
+        
+        .bar-label {
+            position: absolute;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 2;
+            white-space: nowrap;
+            color: #fff;
+            left: 8px; /* 统一左对齐 */
+            text-shadow: 0 0 2px rgba(0,0,0,0.1);
+        }
+
+        /* 弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 85%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .history-item {
+            border-bottom: 1px solid var(--border);
+            padding: 12px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-info { cursor: pointer; flex: 1; }
+        .history-title { font-weight: 600; font-size: 14px; margin-bottom: 2px;}
+        .history-date { font-size: 11px; color: #94a3b8; }
+        .history-del { color: var(--danger); padding: 5px 0 5px 15px; font-size: 18px; }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-btn" onclick="openHistory()">📜 历史</div>
+    <h1>好省</h1>
+    <!-- 3. 图标更换为星星 -->
+    <div class="header-btn" onclick="saveRecord()">⭐️ 保存</div>
+</div>
+
+<div class="container">
+    <div id="input-list"></div>
+
+    <div class="actions">
+        <button class="btn btn-reset" onclick="resetAll()">重置</button>
+        <button class="btn btn-calc" onclick="calculate()">🚀 开始比价</button>
+        <button class="btn btn-add" onclick="addInputRow()">+ 加品</button>
+    </div>
+
+    <div id="result-area">
+        <div class="result-title">—— 越靠上越划算 ——</div>
+        <div id="result-list"></div>
+    </div>
+</div>
+
+<div id="historyModal" class="modal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="margin:0; font-size:18px;">历史记录</h2>
+            <span onclick="closeModal('historyModal')" style="font-size:24px; cursor:pointer; color:#94a3b8;">&times;</span>
+        </div>
+        <div id="history-list"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        addInputRow();
+        addInputRow();
+    });
+
+    // === 1. 输入逻辑 ===
+
+    function addInputRow(data = null) {
+        const list = document.getElementById('input-list');
+        const div = document.createElement('div');
+        div.className = 'input-card';
+        
+        const removeBtn = `<span class="remove-row" onclick="removeRow(this)">×</span>`;
+        
+        div.innerHTML = `
+            ${removeBtn}
+            
+            <!-- 第一排：核心数字 -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label><span class="required-star">*</span>价格</label>
+                    <div class="input-wrapper">
+                        <input type="number" inputmode="decimal" class="input-price nav-input has-suffix" placeholder="0" value="${data ? data.price : ''}">
+                        <span class="suffix">元</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><span class="required-star">*</span>数量 <span class="label-note">(支持算式)</span></label>
+                    <input type="text" inputmode="text" class="input-qty nav-input" placeholder="如 10*5" value="${data ? data.qtyRaw : ''}" oninput="updateMathPreview(this)">
+                    <div class="calc-preview"></div>
+                </div>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+
+            <!-- 第二排：辅助名称 (input-name 已统一高度) -->
+            <div class="form-group">
+                <input type="text" class="input-name nav-input" placeholder="商品名称 (选填)" value="${data ? data.name : ''}">
             </div>
-        </main>
-    </body>
+        `;
+        
+        list.appendChild(div);
+
+        if(data && data.qtyRaw) {
+            updateMathPreview(div.querySelector('.input-qty'));
+        }
+
+        bindEnterNavigation(div);
+    }
+
+    function removeRow(btn) {
+        if(document.querySelectorAll('.input-card').length <= 1) return; 
+        btn.parentElement.remove();
+    }
+
+    function resetAll() {
+        if(confirm("确定清空所有内容吗？")) {
+            document.getElementById('input-list').innerHTML = '';
+            document.getElementById('result-area').style.display = 'none';
+            addInputRow();
+            addInputRow();
+        }
+    }
+
+    function bindEnterNavigation(container) {
+        const inputs = container.querySelectorAll('.nav-input');
+        inputs.forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const allInputs = Array.from(document.querySelectorAll('.nav-input'));
+                    const currentIndex = allInputs.indexOf(this);
+                    if (currentIndex < allInputs.length - 1) {
+                        allInputs[currentIndex + 1].focus();
+                    } else {
+                        addInputRow();
+                        setTimeout(() => {
+                            const newInputs = document.querySelectorAll('.nav-input');
+                            newInputs[newInputs.length - 3].focus(); 
+                        }, 50);
+                    }
+                }
+            });
+        });
+    }
+
+    function updateMathPreview(input) {
+        const preview = input.parentElement.querySelector('.calc-preview');
+        let val = input.value.trim().replace(/×/g, '*').replace(/÷/g, '/');
+        
+        if (!val) {
+            preview.innerText = '';
+            return;
+        }
+
+        try {
+            if (/[^0-9\.\+\-\*\/\(\)\s]/.test(val)) {
+                preview.innerText = '';
+                return;
+            }
+            const result = new Function('return ' + val)();
+            if (isFinite(result) && result != val) {
+                preview.innerText = `= ${parseFloat(result.toFixed(4))}`;
+            } else {
+                preview.innerText = '';
+            }
+        } catch (e) {
+            preview.innerText = '';
+        }
+    }
+
+    // === 2. 比价核心 ===
+
+    function calculate() {
+        const cards = document.querySelectorAll('.input-card');
+        let products = [];
+        let hasError = false;
+
+        cards.forEach((card, index) => {
+            const name = card.querySelector('.input-name').value.trim() || `商品 ${index + 1}`;
+            const priceStr = card.querySelector('.input-price').value;
+            const qtyStr = card.querySelector('.input-qty').value.replace(/×/g, '*').replace(/÷/g, '/');
+            
+            if (!priceStr || !qtyStr) return;
+
+            const price = parseFloat(priceStr);
+            let qty = 0;
+
+            try {
+                if (/[^0-9\.\+\-\*\/\(\)\s]/.test(qtyStr)) throw new Error();
+                qty = new Function('return ' + qtyStr)();
+            } catch(e) { hasError = true; }
+
+            if (price > 0 && qty > 0) {
+                products.push({
+                    name: name,
+                    price: price,
+                    qtyRaw: card.querySelector('.input-qty').value,
+                    qtyVal: parseFloat(qty.toFixed(4)),
+                    unitPrice: price / qty
+                });
+            }
+        });
+
+        if (hasError) { alert("部分数量格式错误，请检查"); return; }
+        if (products.length < 1) { alert("请至少填写一个完整的商品"); return; }
+
+        products.sort((a, b) => a.unitPrice - b.unitPrice);
+        renderResults(products);
+    }
+
+    function renderResults(products) {
+        const resultArea = document.getElementById('result-area');
+        const list = document.getElementById('result-list');
+        resultArea.style.display = 'block';
+        list.innerHTML = '';
+
+        const bestPrice = products[0].unitPrice;
+
+        products.forEach((p, index) => {
+            const isBest = index === 0;
+            const premium = ((p.unitPrice - bestPrice) / bestPrice) * 100;
+            const displayUnit = parseFloat(p.unitPrice.toFixed(4));
+            
+            let icon = '🛒';
+            if (index === 0) icon = '🔥';
+            else if (index === 1) icon = '🥈';
+            else if (index === 2) icon = '🥉';
+
+            let barHtml = '';
+            let widthPercent = isBest ? 40 : (40 + (premium * 0.5));
+            if (widthPercent > 100) widthPercent = 100;
+
+            const text = isBest ? '🔥 最划算' : `🔺 贵 ${premium.toFixed(1)}%`;
+            const colorClass = isBest ? 'green' : 'red';
+            
+            barHtml = `
+                <div class="bar ${colorClass}" style="width: ${widthPercent}%;"></div>
+                <span class="bar-label">${text}</span>
+            `;
+
+            const item = document.createElement('div');
+            item.className = `result-item ${isBest ? 'best' : ''}`;
+            
+            item.innerHTML = `
+                <div class="res-header">
+                    <span class="res-name">${icon} ${p.name}</span>
+                    <span class="unit-price">${displayUnit} <small>元/单位</small></span>
+                </div>
+                <div class="sub-info">${p.price}元 / ${p.qtyVal}</div>
+                <div class="bar-container">
+                    ${barHtml}
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+        resultArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // === 3. 数据存储 ===
+
+    const STORAGE_KEY = 'haosheng_history';
+
+    function saveRecord() {
+        const cards = document.querySelectorAll('.input-card');
+        const products = [];
+        cards.forEach((card) => {
+            const name = card.querySelector('.input-name').value;
+            const price = card.querySelector('.input-price').value;
+            const qty = card.querySelector('.input-qty').value;
+            if(price || qty) {
+                products.push({ name, price, qtyRaw: qty });
+            }
+        });
+
+        if (products.length === 0) {
+            alert("没有可保存的数据");
+            return;
+        }
+
+        const dateStr = new Date().toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+        const defaultName = `比价 ${dateStr}`;
+        const recordName = prompt("给这条记录起个名字：", defaultName);
+        
+        if (recordName) {
+            const record = {
+                id: Date.now(),
+                title: recordName,
+                time: dateStr,
+                data: products
+            };
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            history.unshift(record);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            alert("已保存到历史记录");
+        }
+    }
+
+    function openHistory() {
+        const modal = document.getElementById('historyModal');
+        const list = document.getElementById('history-list');
+        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+        modal.style.display = 'flex';
+        list.innerHTML = '';
+
+        if (history.length === 0) {
+            list.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;">暂无记录</p>';
+            return;
+        }
+
+        history.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div class="history-info" onclick="loadHistory(${item.id})">
+                    <div class="history-title">${item.title}</div>
+                    <div class="history-date">${item.time} · ${item.data.length}品</div>
+                </div>
+                <div class="history-del" onclick="deleteHistory(${item.id})">🗑️</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function loadHistory(id) {
+        const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const record = history.find(r => r.id === id);
+        if (record) {
+            const list = document.getElementById('input-list');
+            list.innerHTML = '';
+            record.data.forEach(item => addInputRow(item));
+            closeModal('historyModal');
+            calculate(); 
+        }
+    }
+
+    function deleteHistory(id) {
+        if(confirm("确定删除？")) {
+            let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            history = history.filter(r => r.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            openHistory();
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    
+    window.onclick = function(event) {
+        const modal = document.getElementById('historyModal');
+        if (event.target == modal) modal.style.display = "none";
+    }
+</script>
+
+</body>
 </html>
